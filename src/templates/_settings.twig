@@ -10,15 +10,6 @@
 }) }}
 
 {{ forms.autosuggestField({
-    label: "Shippo webhook token",
-    instructions: "A shared secret. Append it to the Shippo webhook URL as `?token=…`; blank disables the check.",
-    id: "shippoWebhookToken",
-    name: "shippoWebhookToken",
-    suggestEnvVars: true,
-    value: settings.shippoWebhookToken,
-}) }}
-
-{{ forms.autosuggestField({
     label: "Admin notification email",
     instructions: "Where new-order notices go. Blank uses the system email.",
     id: "adminEmail",

@@ -5,7 +5,6 @@ namespace cadenzajon\stripeshippo\services;
 use cadenzajon\stripeshippo\Plugin;
 use cadenzajon\stripeshippo\records\Shipment;
 use Craft;
-use craft\helpers\Db;
 use DateTime;
 use RuntimeException;
 use yii\base\Component;
@@ -51,7 +50,7 @@ class Fulfillment extends Component
             'subtotal_price' => number_format(($session->amount_subtotal ?? $session->amount_total ?? 0) / 100, 2, '.', ''),
             'shipping_cost' => number_format(($session->shipping_cost->amount_total ?? 0) / 100, 2, '.', ''),
             'shipping_cost_currency' => strtoupper($session->currency ?? 'USD'),
-            // Correlation fallback for the Shippo transaction_created webhook.
+            // Traceability back to the Stripe session.
             'metadata' => "stripe_session={$session->id}",
         ];
 
@@ -76,18 +75,6 @@ class Fulfillment extends Component
         $shipment->save();
 
         return $shipment;
-    }
-
-    /**
-     * Marks a shipment shipped. Called from the Shippo transaction_created webhook.
-     */
-    public function markShipped(Shipment $shipment): void
-    {
-        if ($shipment->shippedAt !== null) {
-            return;
-        }
-        $shipment->shippedAt = Db::prepareDateForDb(new DateTime());
-        $shipment->save();
     }
 
     private function buildToAddress(object $session): ?array

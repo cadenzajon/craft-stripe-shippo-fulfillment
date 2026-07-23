@@ -10,7 +10,7 @@ It builds on the free [`craftcms/stripe`](https://plugins.craftcms.com/stripe) p
 - **One-click import to Shippo** — creates a Shippo order (address, line items, weight, sender) and deep-links you to the buy-label screen.
 - **Status at a glance** — New · Scheduled · Label pending · Shipped · Refunded, derived live from Stripe plus a small local crosswalk table.
 - **Admin email** on every paid order, describing the contents and linking to the dashboard (and straight to Shippo when auto-import is on).
-- **Customer “your order has shipped” email**, sent when the Shippo label is bought — tracking details come from the webhook and are never stored.
+- **Shipped status updates on its own** by reading the Shippo order — no webhook to wire. Let Shippo email the customer their tracking.
 
 ## Requirements
 
@@ -38,13 +38,7 @@ You can also drop a `config/stripe-shippo-fulfillment.php` file to set any of th
 
 **Stripe** needs no new endpoint — the `craftcms/stripe` plugin already receives webhooks, and this plugin listens to its `checkout.session.completed` event for the admin email. Just make sure that plugin's webhook is registered.
 
-**Shippo** posts to this plugin so shipped orders update themselves. Add a Shippo webhook for **`transaction_created`** pointing at:
-
-```
-https://your-site.tld/actions/stripe-shippo-fulfillment/webhooks/shippo?token=YOUR_TOKEN
-```
-
-Set the same `YOUR_TOKEN` as the **Shippo webhook token** in settings (blank disables the check).
+**Shippo** needs no webhook. When you buy a label there, the next dashboard load reads the order, sees the bought label, and stamps the shipped date. Turn on shipment notifications in Shippo to email customers their tracking.
 
 ## Data stored
 
@@ -56,14 +50,10 @@ One table, `stripeshippofulfillment_shipments`, written only after an import:
 | `stripePaymentIntentId` | target of the order-number deep link |
 | `orderNumber` | short human reference |
 | `shippoOrderId` | builds the Shippo deep link; label is read from the order on demand |
-| `shippedAt` | set by the Shippo webhook |
+| `shippedAt` | stamped when a bought label appears on the Shippo order |
 | `importedBy` | Craft user who imported |
 
 No carrier, tracking number, address, or amounts are cached — the dashboard reads those live from Stripe.
-
-## A note on the shipped correlation
-
-The Shippo `transaction_created` webhook delivers a transaction. This plugin matches it back to an order by the transaction’s `order` field, falling back to a `stripe_session=…` marker written into the Shippo order’s metadata at import. Confirm the linkage on your first live label; if your Shippo account surfaces it differently, the fallback marker still resolves it.
 
 ## License
 

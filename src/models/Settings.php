@@ -12,9 +12,6 @@ class Settings extends Model
     /** Shippo API token. Supports env vars, e.g. `$SHIPPO_API_TOKEN`. */
     public string $shippoApiToken = '';
 
-    /** Shared secret appended to the Shippo webhook URL (?token=…) and checked on receipt. */
-    public string $shippoWebhookToken = '';
-
     /** Where new-order notifications are sent. Blank falls back to the system email. */
     public string $adminEmail = '';
 
@@ -43,7 +40,7 @@ class Settings extends Model
         return [
             'parser' => [
                 'class' => EnvAttributeParserBehavior::class,
-                'attributes' => ['shippoApiToken', 'shippoWebhookToken', 'adminEmail'],
+                'attributes' => ['shippoApiToken', 'adminEmail'],
             ],
         ];
     }
@@ -51,11 +48,6 @@ class Settings extends Model
     public function getShippoApiToken(): string
     {
         return App::parseEnv($this->shippoApiToken) ?: '';
-    }
-
-    public function getShippoWebhookToken(): string
-    {
-        return App::parseEnv($this->shippoWebhookToken) ?: '';
     }
 
     public function getAdminEmail(): string
