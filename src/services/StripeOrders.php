@@ -4,6 +4,9 @@ namespace cadenzajon\stripeshippo\services;
 
 use cadenzajon\stripeshippo\Plugin;
 use cadenzajon\stripeshippo\records\Shipment;
+use Craft;
+use craft\helpers\Db;
+use craft\stripe\elements\Product as StripeProduct;
 use craft\stripe\Plugin as StripePlugin;
 use DateTime;
 use Stripe\StripeClient;
@@ -37,6 +40,9 @@ class StripeOrders extends Component
     public function getRecentOrders(?int $limit = null): array
     {
         $limit = $limit ?? Plugin::getInstance()->getSettings()->lookback;
+
+        $this->reconcilePendingShipments();
+
         $client = $this->getClient();
 
         $sessions = $client->checkout->sessions->all([
@@ -56,6 +62,30 @@ class StripeOrders extends Component
         return $orders;
     }
 
+    /**
+     * Stamps shippedAt on imported orders whose Shippo label has been bought.
+     * Runs on each dashboard load; only not-yet-shipped orders are checked.
+     */
+    private function reconcilePendingShipments(): void
+    {
+        $shippo = Plugin::getInstance()->shippo;
+        if (!$shippo->isConfigured()) {
+            return;
+        }
+
+        foreach (Shipment::find()->where(['shippedAt' => null])->all() as $shipment) {
+            try {
+                $when = $shippo->orderShippedAt($shipment->shippoOrderId);
+                if ($when !== null) {
+                    $shipment->shippedAt = Db::prepareDateForDb($when);
+                    $shipment->save();
+                }
+            } catch (\Throwable $e) {
+                Craft::warning("Shippo reconcile failed for {$shipment->shippoOrderId}: {$e->getMessage()}", __METHOD__);
+            }
+        }
+    }
+
     private function normalize(object $session, StripeClient $client): array
     {
         $lineItems = $client->checkout->sessions->allLineItems($session->id, [
@@ -69,10 +99,12 @@ class StripeOrders extends Component
             $product = $li->price->product ?? null;
             $meta = is_object($product) ? ($product->metadata ?? null) : null;
 
+            $productId = is_object($product) ? $product->id : (is_string($product) ? $product : null);
             $items[] = [
                 'title' => $li->description ?? ($meta->name ?? 'Item'),
                 'qty' => $li->quantity ?? 1,
-                'productId' => is_object($product) ? $product->id : (is_string($product) ? $product : null),
+                'productId' => $productId,
+                'craftUrl' => $productId ? $this->craftProductUrl($productId) : null,
             ];
 
             $after = $meta->ship_after ?? null;
@@ -119,6 +151,12 @@ class StripeOrders extends Component
             'shippoOrderId' => $shipment->shippoOrderId ?? null,
             'shippedAt' => $shipment && $shipment->shippedAt ? new DateTime($shipment->shippedAt) : null,
         ];
+    }
+
+    /** CP edit URL of the craftcms/stripe Product element synced from this Stripe product. */
+    private function craftProductUrl(string $stripeProductId): ?string
+    {
+        return StripeProduct::find()->stripeId($stripeProductId)->status(null)->one()?->getCpEditUrl();
     }
 
     /** A short, human order reference — never the raw cs_live_… id. */

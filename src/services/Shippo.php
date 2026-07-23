@@ -4,6 +4,7 @@ namespace cadenzajon\stripeshippo\services;
 
 use cadenzajon\stripeshippo\Plugin;
 use Craft;
+use DateTime;
 use GuzzleHttp\Client;
 use yii\base\Component;
 use yii\base\InvalidConfigException;
@@ -57,6 +58,25 @@ class Shippo extends Component
     {
         $response = $this->client()->get("orders/$orderId");
         return json_decode((string)$response->getBody(), true) ?: [];
+    }
+
+    /**
+     * Reads a Shippo order and returns when its label was bought, or null if not
+     * yet shipped. This is how "Shipped" is detected — no webhook or transaction
+     * correlation needed, because we already hold the order id.
+     */
+    public function orderShippedAt(string $orderId): ?DateTime
+    {
+        $order = $this->getOrder($orderId);
+
+        foreach (($order['transactions'] ?? []) as $transaction) {
+            if (($transaction['status'] ?? null) === 'SUCCESS') {
+                $created = $transaction['object_created'] ?? null;
+                return $created ? new DateTime($created) : new DateTime();
+            }
+        }
+
+        return null;
     }
 
     /** Deep link to the order in the Shippo app, where the label is bought. */

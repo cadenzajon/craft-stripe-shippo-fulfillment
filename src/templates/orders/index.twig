@@ -88,8 +88,8 @@
                             </td>
                             <td class="ss-items">
                                 {% for item in order.items %}
-                                    {% if item.productId %}
-                                        <a href="{{ stripeBase }}/products/{{ item.productId }}" target="_blank" rel="noopener">{{ item.title }}</a>
+                                    {% if item.craftUrl %}
+                                        <a href="{{ item.craftUrl }}">{{ item.title }}</a>
                                     {% else %}
                                         {{ item.title }}
                                     {% endif %}
