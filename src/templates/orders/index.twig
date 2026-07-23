@@ -1,0 +1,133 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set title = "Orders" %}
+{% set fullPageForm = false %}
+
+{% set stripeBase = "https://dashboard.stripe.com" %}
+{% set shippoBase = "https://apps.goshippo.com/orders" %}
+
+{% set pills = {
+    new: { label: "New", class: "ss-new" },
+    scheduled: { label: "Scheduled", class: "ss-scheduled" },
+    label_pending: { label: "Label pending", class: "ss-pending" },
+    shipped: { label: "Shipped", class: "ss-shipped" },
+    refunded: { label: "Refunded", class: "ss-refunded" },
+} %}
+
+{% block actionButton %}
+    <div class="buttons">
+        <a class="btn" href="{{ shippoBase }}" target="_blank" rel="noopener">Open Shippo ↗</a>
+        <a class="btn" href="{{ stripeBase }}/payments" target="_blank" rel="noopener">Open Stripe ↗</a>
+        <a class="btn submit" href="{{ url('stripe-shippo-fulfillment/orders') }}">Refresh</a>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <style>
+        .ss-pill{display:inline-block;padding:2px 9px;border-radius:11px;font-size:12px;font-weight:600;white-space:nowrap}
+        .ss-new{background:#e6effc;color:#1f5fd0}
+        .ss-scheduled{background:#eceef1;color:#5b6472}
+        .ss-pending{background:#fbf0d9;color:#a5730a}
+        .ss-shipped{background:#e2f4e8;color:#1c8a4a}
+        .ss-refunded{background:#fbe3e3;color:#c0392b}
+        .ss-items a{white-space:nowrap}
+        .ss-when{display:block;color:#8b909a;font-size:11px;margin-top:3px}
+        .ss-sub{display:block;color:#8b909a;font-size:11px}
+    </style>
+
+    {% if not ready %}
+        <div class="pane">
+            <p>Connect Stripe first: configure the <a href="{{ url('settings/plugins/stripe') }}">Stripe plugin</a>’s API key, then reload.</p>
+        </div>
+    {% else %}
+        {% if not shippoReady %}
+            <div class="readable" style="margin-bottom:16px">
+                <blockquote class="note warning">Add a Shippo API token in
+                    <a href="{{ url('settings/plugins/stripe-shippo-fulfillment') }}">the plugin settings</a>
+                    before importing orders.</blockquote>
+            </div>
+        {% endif %}
+
+        {% if orders is empty %}
+            <p>No recent orders.</p>
+        {% else %}
+            <table class="data fullwidth">
+                <thead>
+                    <tr>
+                        <th>Order</th>
+                        <th>Placed</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Ship to</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                        {% set pill = pills[order.status] %}
+                        <tr>
+                            <td>
+                                {% if order.paymentIntentId %}
+                                    <a href="{{ stripeBase }}/payments/{{ order.paymentIntentId }}" target="_blank" rel="noopener"><strong>#{{ order.ref }}</strong></a>
+                                {% else %}
+                                    <strong>#{{ order.ref }}</strong>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ order.placedAt|date('M j') }}
+                                <span class="ss-sub">{{ order.placedAt|date('g:i A') }}</span>
+                            </td>
+                            <td>
+                                {{ order.customerName ?? '—' }}
+                                {% if order.customerEmail %}
+                                    <span class="ss-sub"><a href="mailto:{{ order.customerEmail }}">{{ order.customerEmail }}</a></span>
+                                {% endif %}
+                            </td>
+                            <td class="ss-items">
+                                {% for item in order.items %}
+                                    {% if item.productId %}
+                                        <a href="{{ stripeBase }}/products/{{ item.productId }}" target="_blank" rel="noopener">{{ item.title }}</a>
+                                    {% else %}
+                                        {{ item.title }}
+                                    {% endif %}
+                                    <span style="color:#8b909a">×{{ item.qty }}</span>{% if not loop.last %}<br>{% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>{{ order.shipTo ?? '—' }}</td>
+                            <td>{{ order.total }}</td>
+                            <td><span class="ss-pill {{ pill.class }}">{{ pill.label }}</span></td>
+                            <td>
+                                {% if order.status == 'refunded' %}
+                                    <span style="color:#8b909a">No shipment</span>
+                                {% elseif order.shippoOrderId %}
+                                    <a class="btn small" href="{{ shippoBase }}/{{ order.shippoOrderId }}" target="_blank" rel="noopener">
+                                        {{ order.shippedAt ? 'View in Shippo ↗' : 'Buy label ↗' }}
+                                    </a>
+                                    {% if order.shippedAt %}
+                                        <span class="ss-when">shipped {{ order.shippedAt|date('M j') }}</span>
+                                    {% elseif order.scheduled and order.shipAfter %}
+                                        <span class="ss-when">ships {{ order.shipAfter|date('M j') }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <form method="post" style="display:inline">
+                                        {{ csrfInput() }}
+                                        {{ actionInput('stripe-shippo-fulfillment/orders/import') }}
+                                        {{ redirectInput('stripe-shippo-fulfillment/orders') }}
+                                        {{ hiddenInput('sessionId', order.sessionId) }}
+                                        <button type="submit" class="btn small submit"{% if not shippoReady %} disabled{% endif %}>Import to Shippo</button>
+                                    </form>
+                                    {% if order.scheduled and order.shipAfter %}
+                                        <span class="ss-when">ships {{ order.shipAfter|date('M j') }}</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    {% endif %}
+{% endblock %}

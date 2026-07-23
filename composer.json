@@ -1,0 +1,49 @@
+{
+    "name": "cadenzajon/craft-stripe-shippo-fulfillment",
+    "description": "A Craft CP dashboard that reads live Stripe orders and imports them to Shippo for one-click shipping labels.",
+    "type": "craft-plugin",
+    "license": "MIT",
+    "keywords": [
+        "craft",
+        "cms",
+        "craft-plugin",
+        "stripe",
+        "shippo",
+        "fulfillment",
+        "shipping",
+        "labels"
+    ],
+    "support": {
+        "issues": "https://github.com/cadenzajon/craft-stripe-shippo-fulfillment/issues",
+        "source": "https://github.com/cadenzajon/craft-stripe-shippo-fulfillment",
+        "docs": "https://github.com/cadenzajon/craft-stripe-shippo-fulfillment"
+    },
+    "authors": [
+        {
+            "name": "cadenzajon"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "craftcms/cms": "^5.6",
+        "craftcms/stripe": "^1.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "cadenzajon\\stripeshippo\\": "src/"
+        }
+    },
+    "extra": {
+        "handle": "stripe-shippo-fulfillment",
+        "name": "Stripe → Shippo Fulfillment",
+        "developer": "cadenzajon",
+        "documentationUrl": "https://github.com/cadenzajon/craft-stripe-shippo-fulfillment",
+        "class": "cadenzajon\\stripeshippo\\Plugin"
+    },
+    "config": {
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true,
+            "craftcms/plugin-installer": true
+        }
+    }
+}

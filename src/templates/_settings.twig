@@ -1,0 +1,67 @@
+{% import "_includes/forms" as forms %}
+
+{{ forms.autosuggestField({
+    label: "Shippo API token",
+    instructions: "Your Shippo Live or Test token. Supports environment variables.",
+    id: "shippoApiToken",
+    name: "shippoApiToken",
+    suggestEnvVars: true,
+    value: settings.shippoApiToken,
+}) }}
+
+{{ forms.autosuggestField({
+    label: "Shippo webhook token",
+    instructions: "A shared secret. Append it to the Shippo webhook URL as `?token=…`; blank disables the check.",
+    id: "shippoWebhookToken",
+    name: "shippoWebhookToken",
+    suggestEnvVars: true,
+    value: settings.shippoWebhookToken,
+}) }}
+
+{{ forms.autosuggestField({
+    label: "Admin notification email",
+    instructions: "Where new-order notices go. Blank uses the system email.",
+    id: "adminEmail",
+    name: "adminEmail",
+    suggestEnvVars: true,
+    value: settings.adminEmail,
+}) }}
+
+{{ forms.lightswitchField({
+    label: "Auto-import to Shippo",
+    instructions: "Create the Shippo order automatically when an order is paid. Off = import by hand from the dashboard. A label is never bought automatically either way.",
+    id: "autoImportToShippo",
+    name: "autoImportToShippo",
+    on: settings.autoImportToShippo,
+}) }}
+
+{{ forms.textField({
+    label: "Orders to show",
+    id: "lookback",
+    name: "lookback",
+    size: 5,
+    value: settings.lookback,
+}) }}
+
+{{ forms.textField({
+    label: "Default weight (oz)",
+    instructions: "Used for a line item whose Stripe product has no `weight_oz` metadata.",
+    id: "defaultWeightOz",
+    name: "defaultWeightOz",
+    size: 6,
+    value: settings.defaultWeightOz,
+}) }}
+
+<hr>
+<h2>Sender address</h2>
+<p class="light">Prefills the Shippo order so rates resolve on the buy-label screen.</p>
+
+{{ forms.textField({ label: "Name", name: "fromName", value: settings.fromName }) }}
+{{ forms.textField({ label: "Street 1", name: "fromStreet1", value: settings.fromStreet1 }) }}
+{{ forms.textField({ label: "Street 2", name: "fromStreet2", value: settings.fromStreet2 }) }}
+{{ forms.textField({ label: "City", name: "fromCity", value: settings.fromCity }) }}
+{{ forms.textField({ label: "State", name: "fromState", value: settings.fromState, size: 6 }) }}
+{{ forms.textField({ label: "ZIP", name: "fromZip", value: settings.fromZip, size: 10 }) }}
+{{ forms.textField({ label: "Country", name: "fromCountry", value: settings.fromCountry, size: 4 }) }}
+{{ forms.textField({ label: "Phone", name: "fromPhone", value: settings.fromPhone }) }}
+{{ forms.textField({ label: "Email", name: "fromEmail", value: settings.fromEmail }) }}
