@@ -3,6 +3,7 @@
 namespace cadenzajon\stripeshippo\controllers;
 
 use cadenzajon\stripeshippo\Plugin;
+use cadenzajon\stripeshippo\records\Shipment;
 use Craft;
 use craft\web\Controller;
 use yii\web\Response;
@@ -45,8 +46,12 @@ class OrdersController extends Controller
             return $this->asFailure($e->getMessage());
         }
 
-        $url = Plugin::getInstance()->shippo->appUrl($shipment->shippoOrderId);
-        Craft::$app->getSession()->setNotice("Imported to Shippo. Buy the label: $url");
+        if ($shipment->status === Shipment::STATUS_IMPORTED && $shipment->shippoOrderId) {
+            $url = Plugin::getInstance()->shippo->appUrl($shipment->shippoOrderId);
+            Craft::$app->getSession()->setNotice("Imported to Shippo. Buy the label: $url");
+        } else {
+            Craft::$app->getSession()->setNotice('This order is already being imported. Refresh in a moment.');
+        }
 
         return $this->redirectToPostedUrl();
     }

@@ -30,7 +30,7 @@ class Plugin extends BasePlugin
 {
     public const PERMISSION_MANAGE = 'stripe-shippo-fulfillment:manage';
 
-    public string $schemaVersion = '1.0.0';
+    public string $schemaVersion = '1.1.0';
     public bool $hasCpSection = true;
     public bool $hasCpSettings = true;
 
@@ -119,11 +119,21 @@ class Plugin extends BasePlugin
             StripeWebhooks::class,
             StripeWebhooks::EVENT_STRIPE_EVENT,
             function(StripeEvent $event) {
-                if ($event->stripeEvent->type !== 'checkout.session.completed') {
+                // Immediate card payments arrive as checkout.session.completed;
+                // delayed methods (e.g. ACH) complete unpaid and later fire
+                // checkout.session.async_payment_succeeded.
+                $handled = ['checkout.session.completed', 'checkout.session.async_payment_succeeded'];
+                if (!in_array($event->stripeEvent->type, $handled, true)) {
                     return;
                 }
 
                 $session = $event->stripeEvent->data->object;
+
+                // Act only once the session is actually paid, so a delayed
+                // payment does not import or email at the unpaid 'completed' step.
+                if (($session->payment_status ?? null) === 'unpaid') {
+                    return;
+                }
 
                 try {
                     $shipment = null;

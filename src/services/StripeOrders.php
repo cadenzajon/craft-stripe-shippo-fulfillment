@@ -73,7 +73,11 @@ class StripeOrders extends Component
             return;
         }
 
-        foreach (Shipment::find()->where(['shippedAt' => null])->all() as $shipment) {
+        $pending = Shipment::find()
+            ->where(['shippedAt' => null, 'status' => Shipment::STATUS_IMPORTED])
+            ->andWhere(['not', ['shippoOrderId' => null]])
+            ->all();
+        foreach ($pending as $shipment) {
             try {
                 $when = $shippo->orderShippedAt($shipment->shippoOrderId);
                 if ($when !== null) {
@@ -122,12 +126,15 @@ class StripeOrders extends Component
         $refunded = is_object($charge) && ($charge->refunded ?? false);
 
         $shipment = Shipment::findBySession($session->id);
+        // Only a completed import counts as fulfilled; a processing/failed claim
+        // row still reads as a new, importable order.
+        $imported = $shipment !== null && $shipment->status === Shipment::STATUS_IMPORTED;
         $scheduled = $shipAfter !== null && $shipAfter > time();
 
         $status = match (true) {
             $refunded => self::STATUS_REFUNDED,
-            $shipment && $shipment->shippedAt => self::STATUS_SHIPPED,
-            $shipment !== null => self::STATUS_LABEL_PENDING,
+            $imported && $shipment->shippedAt => self::STATUS_SHIPPED,
+            $imported => self::STATUS_LABEL_PENDING,
             $scheduled => self::STATUS_SCHEDULED,
             default => self::STATUS_NEW,
         };
@@ -148,8 +155,8 @@ class StripeOrders extends Component
             'status' => $status,
             'scheduled' => $scheduled,
             'shipAfter' => $shipAfter ? (new DateTime())->setTimestamp($shipAfter) : null,
-            'shippoOrderId' => $shipment->shippoOrderId ?? null,
-            'shippedAt' => $shipment && $shipment->shippedAt ? new DateTime($shipment->shippedAt) : null,
+            'shippoOrderId' => $imported ? $shipment->shippoOrderId : null,
+            'shippedAt' => $imported && $shipment->shippedAt ? new DateTime($shipment->shippedAt) : null,
         ];
     }
 

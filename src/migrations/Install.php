@@ -19,7 +19,9 @@ class Install extends Migration
             'stripeCheckoutSessionId' => $this->string()->notNull(),
             'stripePaymentIntentId' => $this->string(),
             'orderNumber' => $this->string(),
-            'shippoOrderId' => $this->string()->notNull(),
+            // Null until the Shippo order is created; a claim row is written first.
+            'shippoOrderId' => $this->string(),
+            'status' => $this->string()->notNull()->defaultValue('imported'),
             'shippedAt' => $this->dateTime(),
             'importedBy' => $this->integer(),
             'dateCreated' => $this->dateTime()->notNull(),
@@ -29,6 +31,7 @@ class Install extends Migration
 
         $this->createIndex(null, $table, ['stripeCheckoutSessionId'], true);
         $this->createIndex(null, $table, ['shippoOrderId']);
+        $this->createIndex(null, $table, ['status']);
         $this->createIndex(null, $table, ['shippedAt']);
         $this->addForeignKey(null, $table, ['importedBy'], '{{%users}}', ['id'], 'SET NULL', null);
 
