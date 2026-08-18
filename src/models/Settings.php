@@ -21,8 +21,20 @@ class Settings extends Model
     /** How many recent Stripe orders the dashboard reads. */
     public int $lookback = 25;
 
-    /** Default parcel weight (oz) for a line item with no `weight_oz` product metadata. */
+    /** Default parcel weight (oz) for a line item whose product has no weight metadata. */
     public float $defaultWeightOz = 12.0;
+
+    /**
+     * Stripe product metadata key holding a line item's unit weight in ounces.
+     * Set to '' to always use defaultWeightOz.
+     */
+    public string $weightMetadataKey = 'weight_oz';
+
+    /**
+     * Stripe product metadata key holding the date an order may ship on, used
+     * to mark pre-orders as scheduled. Set to '' to disable scheduling.
+     */
+    public string $shipAfterMetadataKey = 'ship_after';
 
     // Sender / return address used to prefill the Shippo order so rates resolve.
     public string $fromName = '';

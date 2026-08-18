@@ -111,7 +111,8 @@ class StripeOrders extends Component
                 'craftUrl' => $productId ? $this->craftProductUrl($productId) : null,
             ];
 
-            $after = $meta->ship_after ?? null;
+            $shipAfterKey = Plugin::getInstance()->getSettings()->shipAfterMetadataKey;
+            $after = ($shipAfterKey !== '' && isset($meta->$shipAfterKey)) ? $meta->$shipAfterKey : null;
             if ($after) {
                 $ts = strtotime($after);
                 if ($ts && ($shipAfter === null || $ts > $shipAfter)) {

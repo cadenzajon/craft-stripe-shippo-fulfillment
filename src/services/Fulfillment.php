@@ -211,7 +211,10 @@ class Fulfillment extends Component
             $qty = $li->quantity ?? 1;
             $product = $li->price->product ?? null;
             $meta = is_object($product) ? ($product->metadata ?? null) : null;
-            $unitOz = isset($meta->weight_oz) ? (float)$meta->weight_oz : $defaultWeightOz;
+            $weightKey = Plugin::getInstance()->getSettings()->weightMetadataKey;
+            $unitOz = ($weightKey !== '' && isset($meta->$weightKey))
+                ? (float)$meta->$weightKey
+                : $defaultWeightOz;
             $totalOz += $unitOz * $qty;
 
             $items[] = [
