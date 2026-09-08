@@ -46,7 +46,7 @@ class Notifications extends Component
             . ' <' . ($session->customer_details->email ?? '—') . ">\n\n"
             . "Fulfillment dashboard: {$dashboard}\n";
 
-        if ($shipment !== null) {
+        if ($shipment?->status === Shipment::STATUS_IMPORTED && $shipment->shippoOrderId) {
             $body .= 'Buy the label in Shippo: ' . Plugin::getInstance()->shippo->appUrl($shipment->shippoOrderId) . "\n";
         }
 
