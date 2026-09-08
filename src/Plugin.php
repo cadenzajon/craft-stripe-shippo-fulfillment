@@ -11,8 +11,6 @@ use Craft;
 use craft\base\Model;
 use craft\base\Plugin as BasePlugin;
 use craft\events\RegisterUrlRulesEvent;
-use craft\events\RegisterUserPermissionsEvent;
-use craft\services\UserPermissions;
 use craft\stripe\events\StripeEvent;
 use craft\stripe\services\Webhooks as StripeWebhooks;
 use craft\web\UrlManager;
@@ -28,8 +26,6 @@ use yii\base\Event;
  */
 class Plugin extends BasePlugin
 {
-    public const PERMISSION_MANAGE = 'stripe-shippo-fulfillment:manage';
-
     public string $schemaVersion = '1.1.0';
     public bool $hasCpSection = true;
     public bool $hasCpSettings = true;
@@ -53,7 +49,6 @@ class Plugin extends BasePlugin
         $this->controllerNamespace = 'cadenzajon\\stripeshippo\\controllers';
 
         $this->registerCpRoutes();
-        $this->registerPermissions();
         $this->registerStripeListener();
     }
 
@@ -72,6 +67,10 @@ class Plugin extends BasePlugin
 
     public function getCpNavItem(): ?array
     {
+        if (!Craft::$app->getUser()->getIsAdmin()) {
+            return null;
+        }
+
         $item = parent::getCpNavItem();
         $item['label'] = 'Fulfillment';
         $item['url'] = 'stripe-shippo-fulfillment';
@@ -86,24 +85,6 @@ class Plugin extends BasePlugin
             function(RegisterUrlRulesEvent $event) {
                 $event->rules['stripe-shippo-fulfillment'] = 'stripe-shippo-fulfillment/orders/index';
                 $event->rules['stripe-shippo-fulfillment/orders'] = 'stripe-shippo-fulfillment/orders/index';
-            }
-        );
-    }
-
-    private function registerPermissions(): void
-    {
-        Event::on(
-            UserPermissions::class,
-            UserPermissions::EVENT_REGISTER_PERMISSIONS,
-            function(RegisterUserPermissionsEvent $event) {
-                $event->permissions[] = [
-                    'heading' => 'Stripe → Shippo Fulfillment',
-                    'permissions' => [
-                        self::PERMISSION_MANAGE => [
-                            'label' => 'Manage fulfillment and buy shipping labels',
-                        ],
-                    ],
-                ];
             }
         );
     }
