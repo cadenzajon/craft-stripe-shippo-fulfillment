@@ -224,9 +224,19 @@ class Fulfillment extends Component
             $product = $li->price->product ?? null;
             $meta = is_object($product) ? ($product->metadata ?? null) : null;
             $weightKey = Plugin::getInstance()->getSettings()->weightMetadataKey;
-            $unitOz = ($weightKey !== '' && isset($meta->$weightKey))
-                ? (float)$meta->$weightKey
-                : $defaultWeightOz;
+            $unitOz = $defaultWeightOz;
+            if ($weightKey !== '' && isset($meta->$weightKey)) {
+                $candidate = is_numeric($meta->$weightKey) ? (float)$meta->$weightKey : 0.0;
+                if (is_finite($candidate) && $candidate > 0) {
+                    $unitOz = $candidate;
+                } else {
+                    $productId = is_object($product) ? ($product->id ?? 'unknown') : 'unknown';
+                    Craft::warning(
+                        "Stripe product $productId has invalid $weightKey metadata; using the default weight.",
+                        __METHOD__,
+                    );
+                }
+            }
             $totalOz += $unitOz * $qty;
 
             $items[] = [

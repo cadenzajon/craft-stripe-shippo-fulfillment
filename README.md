@@ -14,6 +14,8 @@ It builds on the free [`craftcms/stripe`](https://plugins.craftcms.com/stripe) p
 
 Fully refunded orders cannot be imported. Partially refunded orders remain importable and display a warning so an administrator can decide whether fulfillment should proceed.
 
+Product weight metadata must be a finite positive number of ounces; invalid values use the configured default weight and produce a warning. Scheduled shipping metadata must use `YYYY-MM-DD`; invalid dates are ignored and logged. Scheduling remains informational and never blocks import or delays any action.
+
 ## Requirements
 
 Craft CMS 5.6+, PHP 8.2+, the `craftcms/stripe` plugin, and a Shippo account.
