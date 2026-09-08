@@ -34,6 +34,8 @@ In **Settings → Plugins → Stripe → Shippo Fulfillment**:
 
 You can also drop a `config/stripe-shippo-fulfillment.php` file to set any of these per-environment.
 
+The Fulfillment control-panel section is restricted to Craft administrators. Non-admin users cannot see or access its screens or actions.
+
 ## Webhooks
 
 **Stripe** needs no new endpoint — the `craftcms/stripe` plugin already receives webhooks, and this plugin listens to its `checkout.session.completed` event for the admin email. Just make sure that plugin's webhook is registered.

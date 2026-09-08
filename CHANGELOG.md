@@ -1,5 +1,10 @@
 # Release Notes for Stripe → Shippo Fulfillment
 
+## Unreleased
+
+### Breaking change
+- The Fulfillment control-panel section and actions are now restricted to Craft administrators. Previously authorized non-admin users no longer have access.
+
 ## 0.1.0 - 2026-07-23
 
 ### Added

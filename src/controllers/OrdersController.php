@@ -2,8 +2,8 @@
 
 namespace cadenzajon\stripeshippo\controllers;
 
-use cadenzajon\stripeshippo\Plugin;
 use cadenzajon\stripeshippo\records\Shipment;
+use cadenzajon\stripeshippo\Plugin;
 use Craft;
 use craft\web\Controller;
 use yii\web\Response;
@@ -15,7 +15,9 @@ class OrdersController extends Controller
         if (!parent::beforeAction($action)) {
             return false;
         }
-        $this->requirePermission(Plugin::PERMISSION_MANAGE);
+        // Fulfillment is operational work, not a system configuration change,
+        // so it remains available when allowAdminChanges is disabled.
+        $this->requireAdmin(false);
         return true;
     }
 
