@@ -35,6 +35,37 @@ class StripeOrders extends Component
     }
 
     /**
+     * Returns every line item for a Checkout Session, including its expanded
+     * product. Stripe caps each response page, so callers must not rely on the
+     * abbreviated line_items collection embedded in an expanded Session.
+     *
+     * @return object[]
+     */
+    public function getAllLineItems(string $sessionId, bool $expandProducts = true): array
+    {
+        $items = [];
+        $params = ['limit' => 100];
+        if ($expandProducts) {
+            $params['expand'] = ['data.price.product'];
+        }
+
+        do {
+            $page = $this->getClient()->checkout->sessions->allLineItems($sessionId, $params);
+            foreach ($page->data as $item) {
+                $items[] = $item;
+            }
+
+            $pageData = $page->data;
+            $last = $pageData ? end($pageData) : null;
+            if ($page->has_more && $last) {
+                $params['starting_after'] = $last->id;
+            }
+        } while ($page->has_more && $last);
+
+        return $items;
+    }
+
+    /**
      * @return array<int, array<string, mixed>> Normalized order rows, newest first.
      */
     public function getRecentOrders(?int $limit = null): array
@@ -56,7 +87,7 @@ class StripeOrders extends Component
             if (($session->payment_status ?? null) === 'unpaid') {
                 continue;
             }
-            $orders[] = $this->normalize($session, $client);
+            $orders[] = $this->normalize($session);
         }
 
         return $orders;
@@ -90,12 +121,9 @@ class StripeOrders extends Component
         }
     }
 
-    private function normalize(object $session, StripeClient $client): array
+    private function normalize(object $session): array
     {
-        $lineItems = $client->checkout->sessions->allLineItems($session->id, [
-            'limit' => 20,
-            'expand' => ['data.price.product'],
-        ])->data;
+        $lineItems = $this->getAllLineItems($session->id);
 
         $items = [];
         $shipAfter = null;

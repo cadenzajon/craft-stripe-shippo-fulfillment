@@ -6,10 +6,10 @@ It builds on the free [`craftcms/stripe`](https://plugins.craftcms.com/stripe) p
 
 ## What it does
 
-- **Live orders list** — the *Fulfillment → Orders* screen queries Stripe on load; nothing about a Stripe session is cached until you import it.
+- **Live orders list** — the *Fulfillment → Orders* screen queries Stripe on load and paginates every order's line items; nothing about a Stripe session is cached until you import it.
 - **One-click import to Shippo** — creates a Shippo order (address, line items, weight, sender) and deep-links you to the buy-label screen.
 - **Status at a glance** — New · Scheduled · Label pending · Shipped · Refunded, derived live from Stripe plus a small local crosswalk table.
-- **Admin email** on every paid order, describing the contents and linking to the dashboard (and straight to Shippo when auto-import is on).
+- **Admin email** on every paid order, listing every line item and linking to the dashboard (and straight to Shippo when auto-import is on).
 - **Shipped status updates on its own** by reading the Shippo order — no webhook to wire. Let Shippo email the customer their tracking.
 
 ## Requirements
