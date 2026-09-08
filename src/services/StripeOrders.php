@@ -153,6 +153,9 @@ class StripeOrders extends Component
         $piId = is_object($pi) ? $pi->id : (is_string($pi) ? $pi : null);
         $charge = is_object($pi) ? ($pi->latest_charge ?? null) : null;
         $refunded = is_object($charge) && ($charge->refunded ?? false);
+        $partiallyRefunded = is_object($charge)
+            && !$refunded
+            && ($charge->amount_refunded ?? 0) > 0;
 
         $shipment = Shipment::findBySession($session->id);
         // Only a completed import counts as fulfilled; a processing/failed claim
@@ -182,6 +185,7 @@ class StripeOrders extends Component
             'items' => $items,
             'total' => $this->money($session->amount_total ?? 0, $session->currency ?? 'usd'),
             'status' => $status,
+            'partiallyRefunded' => $partiallyRefunded,
             'scheduled' => $scheduled,
             'shipAfter' => $shipAfter ? (new DateTime())->setTimestamp($shipAfter) : null,
             'shippoOrderId' => $imported ? $shipment->shippoOrderId : null,
