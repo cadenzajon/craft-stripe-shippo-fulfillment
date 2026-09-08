@@ -41,7 +41,7 @@ class Notifications extends Component
         $dashboard = UrlHelper::cpUrl('stripe-shippo-fulfillment');
         $body = "New order {$ref}\n\n"
             . implode("\n", $lines) . "\n\n"
-            . 'Total: $' . number_format(($session->amount_total ?? 0) / 100, 2) . "\n"
+            . 'Total: ' . $orders->formatAmount($session->amount_total ?? 0, $session->currency ?? 'usd') . "\n"
             . 'Customer: ' . ($session->customer_details->name ?? '—')
             . ' <' . ($session->customer_details->email ?? '—') . ">\n\n"
             . "Fulfillment dashboard: {$dashboard}\n";

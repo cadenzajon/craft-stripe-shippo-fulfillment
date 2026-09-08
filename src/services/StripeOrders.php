@@ -7,6 +7,7 @@ use cadenzajon\stripeshippo\records\Shipment;
 use Craft;
 use craft\helpers\Db;
 use craft\stripe\elements\Product as StripeProduct;
+use craft\stripe\helpers\Price as PriceHelper;
 use craft\stripe\Plugin as StripePlugin;
 use DateTime;
 use Stripe\StripeClient;
@@ -183,7 +184,7 @@ class StripeOrders extends Component
             'customerEmail' => $session->customer_details->email ?? null,
             'shipTo' => $address ? trim(($address->city ?? '') . ', ' . ($address->state ?? ''), ', ') : null,
             'items' => $items,
-            'total' => $this->money($session->amount_total ?? 0, $session->currency ?? 'usd'),
+            'total' => $this->formatAmount($session->amount_total ?? 0, $session->currency ?? 'usd'),
             'status' => $status,
             'partiallyRefunded' => $partiallyRefunded,
             'scheduled' => $scheduled,
@@ -207,8 +208,21 @@ class StripeOrders extends Component
         return $fromMeta ?: strtoupper(substr($session->id, -8));
     }
 
-    private function money(int $amount, string $currency): string
+    public function formatAmount(int $amount, string $currency): string
     {
-        return '$' . number_format($amount / 100, 2) . ($currency !== 'usd' ? ' ' . strtoupper($currency) : '');
+        $value = in_array(strtolower($currency), PriceHelper::$zeroDecimalCurrencies, true)
+            ? $amount
+            : $amount / 100;
+
+        return Craft::$app->getFormatter()->asCurrency($value, $currency);
+    }
+
+    /** Converts a Stripe minor-unit amount to the decimal string Shippo expects. */
+    public function decimalAmount(int $amount, string $currency): string
+    {
+        $decimals = in_array(strtolower($currency), PriceHelper::$zeroDecimalCurrencies, true) ? 0 : 2;
+        $divisor = $decimals === 0 ? 1 : 100;
+
+        return number_format($amount / $divisor, $decimals, '.', '');
     }
 }

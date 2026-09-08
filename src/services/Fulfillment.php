@@ -64,6 +64,7 @@ class Fulfillment extends Component
         }
 
         [$lineItems, $weightOz] = $this->buildLineItems($stripeLineItems, $session, $settings->defaultWeightOz);
+        $currency = $session->currency ?? 'usd';
 
         $payload = [
             'to_address' => $toAddress,
@@ -73,11 +74,11 @@ class Fulfillment extends Component
             'order_status' => 'PAID',
             'weight' => (string)round($weightOz, 2),
             'weight_unit' => 'oz',
-            'currency' => strtoupper($session->currency ?? 'USD'),
-            'total_price' => number_format(($session->amount_total ?? 0) / 100, 2, '.', ''),
-            'subtotal_price' => number_format(($session->amount_subtotal ?? $session->amount_total ?? 0) / 100, 2, '.', ''),
-            'shipping_cost' => number_format(($session->shipping_cost->amount_total ?? 0) / 100, 2, '.', ''),
-            'shipping_cost_currency' => strtoupper($session->currency ?? 'USD'),
+            'currency' => strtoupper($currency),
+            'total_price' => $orders->decimalAmount($session->amount_total ?? 0, $currency),
+            'subtotal_price' => $orders->decimalAmount($session->amount_subtotal ?? $session->amount_total ?? 0, $currency),
+            'shipping_cost' => $orders->decimalAmount($session->shipping_cost->amount_total ?? 0, $currency),
+            'shipping_cost_currency' => strtoupper($currency),
             // Traceability back to the Stripe session.
             'metadata' => "stripe_session={$session->id}",
         ];
@@ -231,7 +232,10 @@ class Fulfillment extends Component
             $items[] = [
                 'title' => $li->description ?? 'Item',
                 'quantity' => $qty,
-                'total_price' => number_format(($li->amount_total ?? 0) / 100, 2, '.', ''),
+                'total_price' => Plugin::getInstance()->stripeOrders->decimalAmount(
+                    $li->amount_total ?? 0,
+                    $session->currency ?? 'usd',
+                ),
                 'currency' => strtoupper($session->currency ?? 'USD'),
                 'weight' => (string)round($unitOz, 2),
                 'weight_unit' => 'oz',
