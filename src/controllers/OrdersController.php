@@ -5,6 +5,7 @@ namespace cadenzajon\stripeshippo\controllers;
 use cadenzajon\stripeshippo\records\Shipment;
 use cadenzajon\stripeshippo\Plugin;
 use Craft;
+use craft\helpers\Json;
 use craft\web\Controller;
 use yii\web\Response;
 
@@ -45,7 +46,18 @@ class OrdersController extends Controller
         try {
             $shipment = Plugin::getInstance()->fulfillment->importToShippo($sessionId, $userId);
         } catch (\Throwable $e) {
-            return $this->asFailure($e->getMessage());
+            Craft::error('Manual fulfillment import failed: ' . Json::encode([
+                'sessionId' => $sessionId,
+                'error' => $e->getMessage(),
+            ]), __METHOD__);
+            $message = 'Shippo could not import this order. Check the logs and try again.';
+
+            if ($this->request->getAcceptsJson()) {
+                return $this->asFailure($message);
+            }
+
+            $this->setFailFlash($message);
+            return $this->redirectToPostedUrl();
         }
 
         if ($shipment->status === Shipment::STATUS_IMPORTED && $shipment->shippoOrderId) {
