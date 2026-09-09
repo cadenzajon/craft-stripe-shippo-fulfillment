@@ -4,7 +4,7 @@
 
 ### Fixed
 - Stripe Checkout line items are fully paginated for dashboard display, Shippo import, weight calculation, and admin emails.
-- Manual import failures return administrators to the dashboard with a safe failure message while full diagnostics are logged.
+- Expected order-validation failures remain visible to administrators. Unexpected manual import failures return administrators to the dashboard with a generic message while the full exception is logged.
 
 ### Breaking change
 - The Fulfillment control-panel section and actions are now restricted to Craft administrators. Previously authorized non-admin users no longer have access.

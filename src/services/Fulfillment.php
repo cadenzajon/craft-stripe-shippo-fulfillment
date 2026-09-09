@@ -2,6 +2,7 @@
 
 namespace cadenzajon\stripeshippo\services;
 
+use cadenzajon\stripeshippo\exceptions\UnfulfillableOrderException;
 use cadenzajon\stripeshippo\Plugin;
 use cadenzajon\stripeshippo\records\Shipment;
 use Craft;
@@ -43,7 +44,7 @@ class Fulfillment extends Component
 
         $toAddress = $this->buildToAddress($session);
         if ($toAddress === null) {
-            throw new RuntimeException("Session $sessionId has no shipping address.");
+            throw new UnfulfillableOrderException("Session $sessionId has no shipping address.");
         }
 
         // Finish every fallible Stripe read before claiming the order. A Stripe
@@ -165,14 +166,14 @@ class Fulfillment extends Component
     private function assertFulfillable(object $session): void
     {
         if (($session->mode ?? null) !== 'payment') {
-            throw new RuntimeException("Session {$session->id} is not a payment-mode checkout.");
+            throw new UnfulfillableOrderException("Session {$session->id} is not a payment-mode checkout.");
         }
         if (($session->status ?? null) !== 'complete') {
-            throw new RuntimeException("Session {$session->id} is not complete.");
+            throw new UnfulfillableOrderException("Session {$session->id} is not complete.");
         }
         $paymentStatus = $session->payment_status ?? null;
         if (!in_array($paymentStatus, ['paid', 'no_payment_required'], true)) {
-            throw new RuntimeException("Session {$session->id} is not paid (payment_status={$paymentStatus}).");
+            throw new UnfulfillableOrderException("Session {$session->id} is not paid (payment_status={$paymentStatus}).");
         }
     }
 
