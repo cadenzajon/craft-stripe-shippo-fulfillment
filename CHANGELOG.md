@@ -13,6 +13,25 @@
 ### Breaking change
 - The Fulfillment control-panel section and actions are now restricted to Craft administrators. Previously authorized non-admin users no longer have access.
 
+## 0.1.3 - 2026-08-18
+
+### Added
+- Added `weightMetadataKey` and `shipAfterMetadataKey` settings; empty values disable their respective Stripe Product metadata features.
+
+## 0.1.2 - 2026-08-13
+
+### Added
+- Added delayed-payment success handling and shipment processing/failed states with the corresponding schema migration.
+
+### Fixed
+- Re-verified that a Checkout Session is complete, paid/no-payment-required, and in payment mode before fulfillment.
+- Added an atomic per-session processing claim so concurrent manual/webhook imports cannot create duplicate Shippo orders.
+
+## 0.1.1 - 2026-08-12
+
+### Added
+- Added the package icon used by Craft's control-panel navigation.
+
 ## 0.1.0 - 2026-07-23
 
 ### Added
