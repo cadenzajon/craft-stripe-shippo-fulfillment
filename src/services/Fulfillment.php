@@ -35,7 +35,7 @@ class Fulfillment extends Component
         $settings = Plugin::getInstance()->getSettings();
 
         $session = $client->checkout->sessions->retrieve($sessionId, [
-            'expand' => ['customer_details', 'payment_intent'],
+            'expand' => ['customer_details', 'payment_intent.latest_charge'],
         ]);
 
         // Refuse anything that is not a completed, paid, payment-mode checkout.
@@ -161,7 +161,7 @@ class Fulfillment extends Component
     }
 
     /**
-     * @throws RuntimeException if the session must not be fulfilled.
+     * @throws UnfulfillableOrderException if the session must not be fulfilled.
      */
     private function assertFulfillable(object $session): void
     {
@@ -174,6 +174,12 @@ class Fulfillment extends Component
         $paymentStatus = $session->payment_status ?? null;
         if (!in_array($paymentStatus, ['paid', 'no_payment_required'], true)) {
             throw new UnfulfillableOrderException("Session {$session->id} is not paid (payment_status={$paymentStatus}).");
+        }
+
+        $paymentIntent = $session->payment_intent ?? null;
+        $charge = is_object($paymentIntent) ? ($paymentIntent->latest_charge ?? null) : null;
+        if (is_object($charge) && ($charge->refunded ?? false)) {
+            throw new UnfulfillableOrderException("Session {$session->id} has been fully refunded.");
         }
     }
 

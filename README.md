@@ -12,6 +12,8 @@ It builds on the free [`craftcms/stripe`](https://plugins.craftcms.com/stripe) p
 - **Admin email** on every paid order, listing every line item and linking to the dashboard (and straight to Shippo when auto-import is on).
 - **Shipped status updates on its own** by reading the Shippo order — no webhook to wire. Let Shippo email the customer their tracking.
 
+Fully refunded orders cannot be imported. Partially refunded orders remain importable and display a warning so an administrator can decide whether fulfillment should proceed.
+
 ## Requirements
 
 Craft CMS 5.6+, PHP 8.2+, the `craftcms/stripe` plugin, and a Shippo account.

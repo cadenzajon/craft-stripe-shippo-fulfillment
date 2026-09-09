@@ -98,7 +98,12 @@
                             </td>
                             <td>{{ order.shipTo ?? '—' }}</td>
                             <td>{{ order.total }}</td>
-                            <td><span class="ss-pill {{ pill.class }}">{{ pill.label }}</span></td>
+                            <td>
+                                <span class="ss-pill {{ pill.class }}">{{ pill.label }}</span>
+                                {% if order.partiallyRefunded %}
+                                    <span class="ss-when" style="color:#c0392b">Partially refunded</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if order.status == 'refunded' %}
                                     <span style="color:#8b909a">No shipment</span>
