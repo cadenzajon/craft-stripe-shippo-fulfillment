@@ -23,6 +23,8 @@ class Notifications extends Component
     /**
      * Admin notice on a new paid order. Deep-links to the CP dashboard and, if
      * the order was already imported, straight to the Shippo order.
+     * Returns true when this invocation sends the message or an idempotent
+     * claim means no additional send is required.
      */
     public function sendAdminOrderEmail(string $sessionId, ?Shipment $shipment = null): bool
     {
@@ -34,8 +36,7 @@ class Notifications extends Component
 
         $notification = $this->acquire($sessionId);
         if ($notification === null) {
-            return Notification::findOne(['stripeCheckoutSessionId' => $sessionId])?->status
-                === Notification::STATUS_SENT;
+            return true;
         }
 
         try {
