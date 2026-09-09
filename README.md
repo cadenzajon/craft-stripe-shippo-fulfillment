@@ -61,6 +61,8 @@ One table, `stripeshippofulfillment_shipments`, written only after an import:
 
 No carrier, tracking number, address, or amounts are cached — the dashboard reads those live from Stripe.
 
+Admin notifications use an atomic claim per Stripe Checkout Session, suppressing ordinary concurrent and retried webhook duplicates. Failed sends can retry immediately, and a claim abandoned by a crashed process becomes retryable after ten minutes. This is best-effort deduplication: because the mail transport has no idempotency key, a send that runs beyond that lease and later resumes could still duplicate.
+
 ## License
 
 MIT.

@@ -8,6 +8,7 @@
 - Fully refunded Checkout Sessions are blocked from Shippo import; partial refunds remain importable with a dashboard warning.
 - Dashboard, email, and Shippo payload amounts now respect Stripe zero- and three-decimal currencies and display the correct currency symbol.
 - Invalid product weights fall back safely, and scheduled shipping dates now require an unambiguous `YYYY-MM-DD` value. Invalid metadata is logged.
+- Paid-order admin emails use an atomic, leased claim per Checkout Session, suppressing ordinary concurrent/retried duplicates while allowing failed or abandoned sends to retry. Mail transport cannot guarantee exact-once delivery if a send outlives the ten-minute lease.
 
 ### Breaking change
 - The Fulfillment control-panel section and actions are now restricted to Craft administrators. Previously authorized non-admin users no longer have access.
