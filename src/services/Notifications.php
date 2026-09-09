@@ -18,6 +18,8 @@ use yii\db\IntegrityException;
  */
 class Notifications extends Component
 {
+    private const CLAIM_TIMEOUT = '-10 minutes';
+
     /**
      * Admin notice on a new paid order. Deep-links to the CP dashboard and, if
      * the order was already imported, straight to the Shippo order.
@@ -32,7 +34,8 @@ class Notifications extends Component
 
         $notification = $this->acquire($sessionId);
         if ($notification === null) {
-            return true;
+            return Notification::findOne(['stripeCheckoutSessionId' => $sessionId])?->status
+                === Notification::STATUS_SENT;
         }
 
         try {
@@ -82,13 +85,23 @@ class Notifications extends Component
     {
         $existing = Notification::findOne(['stripeCheckoutSessionId' => $sessionId]);
         if ($existing !== null) {
-            if ($existing->status !== Notification::STATUS_FAILED) {
+            if ($existing->status === Notification::STATUS_SENT) {
                 return null;
             }
 
             $affected = Notification::updateAll(
                 ['status' => Notification::STATUS_PROCESSING, 'dateUpdated' => Db::prepareDateForDb(new DateTime())],
-                ['id' => $existing->id, 'status' => Notification::STATUS_FAILED],
+                [
+                    'and',
+                    ['id' => $existing->id],
+                    ['or',
+                        ['status' => Notification::STATUS_FAILED],
+                        ['and',
+                            ['status' => Notification::STATUS_PROCESSING],
+                            ['<', 'dateUpdated', Db::prepareDateForDb(new DateTime(self::CLAIM_TIMEOUT))],
+                        ],
+                    ],
+                ],
             );
             if ($affected !== 1) {
                 return null;
