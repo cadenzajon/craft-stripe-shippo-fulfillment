@@ -29,12 +29,12 @@ class Notifications extends Component
         $orders = Plugin::getInstance()->stripeOrders;
         $client = $orders->getClient();
         $session = $client->checkout->sessions->retrieve($sessionId, [
-            'expand' => ['line_items', 'customer_details'],
+            'expand' => ['customer_details'],
         ]);
 
         $ref = $orders->reference($session);
         $lines = [];
-        foreach (($session->line_items->data ?? []) as $li) {
+        foreach ($orders->getAllLineItems($sessionId, false) as $li) {
             $lines[] = ($li->quantity ?? 1) . ' × ' . ($li->description ?? 'Item');
         }
 

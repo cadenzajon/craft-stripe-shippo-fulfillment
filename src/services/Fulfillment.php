@@ -34,7 +34,7 @@ class Fulfillment extends Component
         $settings = Plugin::getInstance()->getSettings();
 
         $session = $client->checkout->sessions->retrieve($sessionId, [
-            'expand' => ['line_items.data.price.product', 'customer_details', 'payment_intent'],
+            'expand' => ['customer_details', 'payment_intent'],
         ]);
 
         // Refuse anything that is not a completed, paid, payment-mode checkout.
@@ -45,6 +45,10 @@ class Fulfillment extends Component
         if ($toAddress === null) {
             throw new RuntimeException("Session $sessionId has no shipping address.");
         }
+
+        // Finish every fallible Stripe read before claiming the order. A Stripe
+        // API failure must not leave a processing claim that can never retry.
+        $stripeLineItems = $orders->getAllLineItems($session->id);
 
         // Acquire an exclusive processing claim. Only the acquirer calls Shippo;
         // a concurrent caller gets null and returns the winner's row untouched,
@@ -58,7 +62,7 @@ class Fulfillment extends Component
             return $winner;
         }
 
-        [$lineItems, $weightOz] = $this->buildLineItems($session, $settings->defaultWeightOz);
+        [$lineItems, $weightOz] = $this->buildLineItems($stripeLineItems, $session, $settings->defaultWeightOz);
 
         $payload = [
             'to_address' => $toAddress,
@@ -202,12 +206,12 @@ class Fulfillment extends Component
     /**
      * @return array{0: array<int, array<string, mixed>>, 1: float}
      */
-    private function buildLineItems(object $session, float $defaultWeightOz): array
+    private function buildLineItems(array $lineItems, object $session, float $defaultWeightOz): array
     {
         $items = [];
         $totalOz = 0.0;
 
-        foreach (($session->line_items->data ?? []) as $li) {
+        foreach ($lineItems as $li) {
             $qty = $li->quantity ?? 1;
             $product = $li->price->product ?? null;
             $meta = is_object($product) ? ($product->metadata ?? null) : null;
