@@ -146,7 +146,9 @@ class StripeOrders extends Component
             if ($after) {
                 $date = DateTimeImmutable::createFromFormat('!Y-m-d', (string)$after);
                 $errors = DateTimeImmutable::getLastErrors();
-                $valid = $date !== false && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0));
+                $valid = $date !== false
+                    && $date->format('Y-m-d') === (string)$after
+                    && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0));
                 $ts = $valid ? $date->getTimestamp() : null;
                 if ($ts !== null && ($shipAfter === null || $ts > $shipAfter)) {
                     $shipAfter = $ts;
