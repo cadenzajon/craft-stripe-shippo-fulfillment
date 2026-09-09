@@ -10,6 +10,7 @@ use craft\stripe\elements\Product as StripeProduct;
 use craft\stripe\helpers\Price as PriceHelper;
 use craft\stripe\Plugin as StripePlugin;
 use DateTime;
+use DateTimeImmutable;
 use Stripe\StripeClient;
 use yii\base\Component;
 
@@ -143,9 +144,19 @@ class StripeOrders extends Component
             $shipAfterKey = Plugin::getInstance()->getSettings()->shipAfterMetadataKey;
             $after = ($shipAfterKey !== '' && isset($meta->$shipAfterKey)) ? $meta->$shipAfterKey : null;
             if ($after) {
-                $ts = strtotime($after);
-                if ($ts && ($shipAfter === null || $ts > $shipAfter)) {
+                $date = DateTimeImmutable::createFromFormat('!Y-m-d', (string)$after);
+                $errors = DateTimeImmutable::getLastErrors();
+                $valid = $date !== false
+                    && $date->format('Y-m-d') === (string)$after
+                    && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0));
+                $ts = $valid ? $date->getTimestamp() : null;
+                if ($ts !== null && ($shipAfter === null || $ts > $shipAfter)) {
                     $shipAfter = $ts;
+                } elseif (!$valid) {
+                    Craft::warning(
+                        "Stripe product {$productId} has invalid {$shipAfterKey} metadata; expected YYYY-MM-DD.",
+                        __METHOD__,
+                    );
                 }
             }
         }
