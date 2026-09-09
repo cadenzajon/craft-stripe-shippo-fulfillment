@@ -12,7 +12,7 @@ The plugin never buys labels. It is not a cart, inventory system, carrier tracke
 - Import accepts only complete, paid (or no-payment-required), payment-mode sessions. Fully refunded sessions are blocked; partially refunded sessions remain importable with a warning.
 - Manual import creates one Shippo order and links to Shippo's buy-label screen. Optional auto-import runs after a paid Stripe webhook. Neither workflow buys a label.
 - A unique local claim suppresses duplicate Shippo imports. Ambiguous Shippo failures remain in `processing`; this plugin intentionally provides no reconciliation workflow for them.
-- Admin email is best-effort deduplicated per Checkout Session. Failed sends can retry immediately, and abandoned claims become retryable after ten minutes.
+- Admin email is best-effort deduplicated per Checkout Session. Failed sends can retry immediately, and abandoned claims become retryable after ten minutes. With auto-import enabled, an import exception is logged and stops that webhook invocation before email is attempted.
 - `ship_after` dates are informational. They label an order Scheduled but never prevent or delay manual import, auto-import, or label purchase.
 - On dashboard loads, the plugin asks Shippo whether imported orders have a successful label transaction and leaves the display label as **Shipped**. It stores no carrier or tracking data.
 
@@ -80,7 +80,7 @@ The Stripe endpoint must subscribe to:
 
 An initially unpaid completion is ignored. The later asynchronous-success event triggers fulfillment and email after payment succeeds. Test and live endpoints have separate IDs and signing secrets.
 
-If Stripe Cart is installed, this command creates or updates the saved endpoint with the required events:
+If the separate companion plugin [`cadenzajon/craft-stripecart`](https://github.com/cadenzajon/craft-stripecart) is installed, its `stripe-cart` console command creates or updates the official Stripe plugin's saved endpoint with the required events:
 
 ```bash
 php craft stripe-cart/webhooks/subscribe https://example.com/stripe/webhooks/handle
@@ -181,7 +181,7 @@ Known Shippo client errors mark the claim failed so a later import can retry. Am
 | **Shipped** | Shippo reports a successful label transaction. No carrier/tracking state is checked. |
 | **Refunded** | Stripe reports the latest charge as fully refunded. Import is blocked. |
 
-A partial refund appears as a secondary warning and remains importable. Imported status takes precedence over Scheduled; the date can still be displayed.
+A partial refund appears as a secondary warning and remains importable. A full refund takes precedence over Shipped, Label pending, and Scheduled in the status column, although any stored shipment timestamps remain intact. Imported status takes precedence over Scheduled; the date can still be displayed.
 
 ## Data stored
 
@@ -195,6 +195,7 @@ The dashboard reads customer, address, line, amount, currency, and refund data l
 
 - Dashboard loads and webhook work call Stripe, Shippo, and the mailer synchronously; no Craft queue job or automatic backoff is used.
 - Webhook exceptions are logged by this plugin. The current listener does not deliberately fail the upstream Stripe delivery to request a retry.
+- With auto-import enabled, an import exception also prevents the admin email from being attempted during that webhook invocation.
 - Processing Shippo claims have no built-in reconciliation workflow.
 - Shippo label purchase and customer tracking notifications remain Shippo responsibilities.
 
