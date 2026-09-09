@@ -210,19 +210,34 @@ class StripeOrders extends Component
 
     public function formatAmount(int $amount, string $currency): string
     {
-        $value = in_array(strtolower($currency), PriceHelper::$zeroDecimalCurrencies, true)
-            ? $amount
-            : $amount / 100;
+        $decimals = $this->currencyDecimals($currency);
+        $value = $amount / (10 ** $decimals);
 
-        return Craft::$app->getFormatter()->asCurrency($value, $currency);
+        return Craft::$app->getFormatter()->asCurrency($value, strtoupper($currency));
     }
 
     /** Converts a Stripe minor-unit amount to the decimal string Shippo expects. */
     public function decimalAmount(int $amount, string $currency): string
     {
-        $decimals = in_array(strtolower($currency), PriceHelper::$zeroDecimalCurrencies, true) ? 0 : 2;
-        $divisor = $decimals === 0 ? 1 : 100;
+        $decimals = $this->currencyDecimals($currency);
+        $divisor = 10 ** $decimals;
 
         return number_format($amount / $divisor, $decimals, '.', '');
+    }
+
+    private function currencyDecimals(string $currency): int
+    {
+        $currency = strtolower($currency);
+        if (in_array($currency, PriceHelper::$zeroDecimalCurrencies, true)) {
+            return 0;
+        }
+
+        // craftcms/stripe 1.x exposes this list but misspells BHD as "bdh";
+        // accept both so Stripe's real BHD code is never scaled incorrectly.
+        if ($currency === 'bhd' || in_array($currency, PriceHelper::$threeDecimalCurrencies, true)) {
+            return 3;
+        }
+
+        return 2;
     }
 }
