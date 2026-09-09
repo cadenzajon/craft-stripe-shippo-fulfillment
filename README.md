@@ -61,6 +61,8 @@ One table, `stripeshippofulfillment_shipments`, written only after an import:
 
 No carrier, tracking number, address, or amounts are cached — the dashboard reads those live from Stripe.
 
+Admin notifications are claimed atomically per Stripe Checkout Session. Webhook retries therefore send at most one successful email per order; a failed send remains eligible for retry.
+
 ## License
 
 MIT.
