@@ -11,6 +11,8 @@ use craft\db\ActiveRecord;
  * (status = imported, shippoOrderId set) or released (status = failed) so a retry
  * can run. The unique session index makes the claim atomic. No carrier or tracking
  * number is stored; `shippedAt` plus `shippoOrderId` link straight to the label.
+ * An order shipped outside Shippo gets a row with status = shipped, shippedAt set
+ * and no shippoOrderId.
  *
  * @property int $id
  * @property string $stripeCheckoutSessionId
@@ -29,6 +31,8 @@ class Shipment extends ActiveRecord
     public const STATUS_IMPORTED = 'imported';
     /** The Shippo call failed; the row is released for retry. */
     public const STATUS_FAILED = 'failed';
+    /** An admin marked the order shipped by hand; no Shippo order exists. */
+    public const STATUS_SHIPPED = 'shipped';
 
     public static function tableName(): string
     {

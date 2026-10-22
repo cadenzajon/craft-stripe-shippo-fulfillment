@@ -116,13 +116,18 @@
                                     {% elseif order.scheduled and order.shipAfter %}
                                         <span class="ss-when">ships {{ order.shipAfter|date('M j') }}</span>
                                     {% endif %}
+                                {% elseif order.status == 'shipped' %}
+                                    <span style="color:#8b909a">Marked shipped</span>
+                                    {% if order.shippedAt %}
+                                        <span class="ss-when">shipped {{ order.shippedAt|date('M j') }}</span>
+                                    {% endif %}
                                 {% else %}
-                                    <form method="post" style="display:inline">
+                                    <form method="post" style="display:inline" data-ss-confirm="Mark order #{{ order.ref }} as shipped? This screen cannot undo it.">
                                         {{ csrfInput() }}
-                                        {{ actionInput('stripe-shippo-fulfillment/orders/import') }}
+                                        {{ actionInput('stripe-shippo-fulfillment/orders/mark-shipped') }}
                                         {{ redirectInput('stripe-shippo-fulfillment/orders') }}
                                         {{ hiddenInput('sessionId', order.sessionId) }}
-                                        <button type="submit" class="btn small submit"{% if not shippoReady %} disabled{% endif %}>Import to Shippo</button>
+                                        <button type="submit" class="btn small submit">Mark as shipped</button>
                                     </form>
                                     {% if order.scheduled and order.shipAfter %}
                                         <span class="ss-when">ships {{ order.shipAfter|date('M j') }}</span>
@@ -135,4 +140,14 @@
             </table>
         {% endif %}
     {% endif %}
+
+    {% js %}
+        document.querySelectorAll('form[data-ss-confirm]').forEach(function (form) {
+            form.addEventListener('submit', function (e) {
+                if (!window.confirm(form.dataset.ssConfirm)) {
+                    e.preventDefault();
+                }
+            });
+        });
+    {% endjs %}
 {% endblock %}

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Changed
+- The dashboard action for a new or scheduled order is now **Mark as shipped** instead of **Import to Shippo**. A confirmation popup appears first. The order is then recorded as shipped without a Shippo order, and auto-import skips it. Refunded orders and orders already in Shippo cannot be marked.
+
 ### Fixed
 - Stripe Checkout line items are fully paginated for dashboard display, Shippo import, weight calculation, and admin emails.
 - Expected order-validation failures remain visible to administrators. Unexpected manual import failures return administrators to the dashboard with a generic message while the full exception is logged.
