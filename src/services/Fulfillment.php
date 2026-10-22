@@ -24,9 +24,10 @@ class Fulfillment extends Component
 {
     public function importToShippo(string $sessionId, ?int $userId = null): Shipment
     {
-        // Already imported, or an import is currently in flight: never duplicate.
+        // Already imported, an import is in flight, or shipped by hand: never duplicate.
         $existing = Shipment::findBySession($sessionId);
-        if ($existing !== null && in_array($existing->status, [Shipment::STATUS_IMPORTED, Shipment::STATUS_PROCESSING], true)) {
+        $done = [Shipment::STATUS_IMPORTED, Shipment::STATUS_PROCESSING, Shipment::STATUS_SHIPPED];
+        if ($existing !== null && in_array($existing->status, $done, true)) {
             return $existing;
         }
 
@@ -115,6 +116,76 @@ class Fulfillment extends Component
         }
 
         return $claim;
+    }
+
+    /**
+     * Records that an order shipped outside Shippo. No Shippo order is created;
+     * the row only stops the order from reading as new and from being imported.
+     *
+     * @throws UnfulfillableOrderException if the order must not be marked shipped.
+     */
+    public function markShipped(string $sessionId, ?int $userId = null): Shipment
+    {
+        $existing = Shipment::findBySession($sessionId);
+        if ($existing !== null && $existing->status === Shipment::STATUS_SHIPPED) {
+            return $existing;
+        }
+        if ($existing !== null && $existing->status === Shipment::STATUS_IMPORTED) {
+            // Shipping is tracked through the Shippo label.
+            throw new UnfulfillableOrderException('This order is already in Shippo. Ship it from there.');
+        }
+        if ($existing !== null && $existing->status === Shipment::STATUS_PROCESSING) {
+            // In flight, or an ambiguous Shippo failure that may have created an order.
+            throw new UnfulfillableOrderException('A Shippo import for this order has not finished. Check Shippo before you ship it.');
+        }
+
+        $orders = Plugin::getInstance()->stripeOrders;
+        $session = $orders->getClient()->checkout->sessions->retrieve($sessionId, [
+            'expand' => ['payment_intent.latest_charge'],
+        ]);
+        $this->assertFulfillable($session);
+
+        $now = Db::prepareDateForDb(new DateTime());
+        $pi = $session->payment_intent ?? null;
+        $piId = is_object($pi) ? $pi->id : (is_string($pi) ? $pi : null);
+
+        if ($existing !== null) {
+            // A failed import left a released row; flip it only if it is still released.
+            $affected = Shipment::updateAll(
+                ['status' => Shipment::STATUS_SHIPPED, 'shippedAt' => $now, 'importedBy' => $userId, 'dateUpdated' => $now],
+                ['id' => $existing->id, 'status' => Shipment::STATUS_FAILED],
+            );
+            if ($affected !== 1) {
+                throw new UnfulfillableOrderException('This order changed while you were working. Refresh and try again.');
+            }
+            return Shipment::findOne($existing->id);
+        }
+
+        $row = new Shipment();
+        $row->stripeCheckoutSessionId = $session->id;
+        $row->stripePaymentIntentId = $piId;
+        $row->orderNumber = $orders->reference($session);
+        $row->status = Shipment::STATUS_SHIPPED;
+        $row->shippedAt = $now;
+        $row->importedBy = $userId;
+
+        try {
+            if (!$row->save()) {
+                throw new RuntimeException(
+                    "Could not mark {$session->id} as shipped: " . implode('; ', $row->getFirstErrors())
+                );
+            }
+        } catch (IntegrityException) {
+            // A concurrent import or mark inserted the row first. A duplicate
+            // mark (e.g. a double submit) already did the job.
+            $winner = Shipment::findBySession($session->id);
+            if ($winner !== null && $winner->status === Shipment::STATUS_SHIPPED) {
+                return $winner;
+            }
+            throw new UnfulfillableOrderException('This order changed while you were working. Refresh and try again.');
+        }
+
+        return $row;
     }
 
     /**

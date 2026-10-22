@@ -46,10 +46,10 @@ class OrdersController extends Controller
         try {
             $shipment = Plugin::getInstance()->fulfillment->importToShippo($sessionId, $userId);
         } catch (UnfulfillableOrderException $e) {
-            return $this->importFailure($e->getMessage());
+            return $this->failure($e->getMessage());
         } catch (\Throwable $e) {
             Craft::$app->getErrorHandler()->logException($e);
-            return $this->importFailure('Shippo could not import this order. Check the logs and try again.');
+            return $this->failure('Shippo could not import this order. Check the logs and try again.');
         }
 
         if ($shipment->status === Shipment::STATUS_IMPORTED && $shipment->shippoOrderId) {
@@ -62,7 +62,27 @@ class OrdersController extends Controller
         return $this->redirectToPostedUrl();
     }
 
-    private function importFailure(string $message): Response
+    public function actionMarkShipped(): Response
+    {
+        $this->requirePostRequest();
+
+        $sessionId = $this->request->getRequiredBodyParam('sessionId');
+        $userId = Craft::$app->getUser()->getId();
+
+        try {
+            $shipment = Plugin::getInstance()->fulfillment->markShipped($sessionId, $userId);
+        } catch (UnfulfillableOrderException $e) {
+            return $this->failure($e->getMessage());
+        } catch (\Throwable $e) {
+            Craft::$app->getErrorHandler()->logException($e);
+            return $this->failure('Could not mark this order as shipped. Check the logs and try again.');
+        }
+
+        Craft::$app->getSession()->setNotice("Order #{$shipment->orderNumber} marked as shipped.");
+        return $this->redirectToPostedUrl();
+    }
+
+    private function failure(string $message): Response
     {
         if ($this->request->getAcceptsJson()) {
             return $this->asFailure($message);

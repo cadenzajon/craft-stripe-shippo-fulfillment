@@ -173,10 +173,12 @@ class StripeOrders extends Component
         // Only a completed import counts as fulfilled; a processing/failed claim
         // row still reads as a new, importable order.
         $imported = $shipment !== null && $shipment->status === Shipment::STATUS_IMPORTED;
+        $shippedByHand = $shipment !== null && $shipment->status === Shipment::STATUS_SHIPPED;
         $scheduled = $shipAfter !== null && $shipAfter > time();
 
         $status = match (true) {
             $refunded => self::STATUS_REFUNDED,
+            $shippedByHand => self::STATUS_SHIPPED,
             $imported && $shipment->shippedAt => self::STATUS_SHIPPED,
             $imported => self::STATUS_LABEL_PENDING,
             $scheduled => self::STATUS_SCHEDULED,
@@ -201,7 +203,7 @@ class StripeOrders extends Component
             'scheduled' => $scheduled,
             'shipAfter' => $shipAfter ? (new DateTime())->setTimestamp($shipAfter) : null,
             'shippoOrderId' => $imported ? $shipment->shippoOrderId : null,
-            'shippedAt' => $imported && $shipment->shippedAt ? new DateTime($shipment->shippedAt) : null,
+            'shippedAt' => ($imported || $shippedByHand) && $shipment->shippedAt ? new DateTime($shipment->shippedAt) : null,
         ];
     }
 

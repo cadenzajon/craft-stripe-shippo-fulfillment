@@ -2,7 +2,7 @@
 
 This Craft CMS 5 plugin gives administrators a fulfillment dashboard for paid Stripe Checkout orders. It reads orders directly from Stripe, creates Shippo orders manually or immediately after payment, and links to Shippo so an administrator can choose a rate and buy the label.
 
-The plugin never buys labels. It is not a cart, inventory system, carrier tracker, or order database, and it does not require Craft Commerce. “Shipped” means Shippo reports a successful label transaction; it does not mean carrier acceptance, transit, or delivery.
+The plugin never buys labels. It is not a cart, inventory system, carrier tracker, or order database, and it does not require Craft Commerce. “Shipped” means Shippo reports a successful label transaction, or an administrator marked the order shipped; it does not mean carrier acceptance, transit, or delivery.
 
 ## Behavior
 
@@ -10,7 +10,7 @@ The plugin never buys labels. It is not a cart, inventory system, carrier tracke
 - The dashboard reads the configured number of recent completed Checkout Sessions live from Stripe and omits unpaid sessions.
 - Every Checkout line item is paginated and shown. The same complete set is used for email, weight calculation, and Shippo import.
 - Import accepts only complete, paid (or no-payment-required), payment-mode sessions. Fully refunded sessions are blocked; partially refunded sessions remain importable with a warning.
-- Manual import creates one Shippo order and links to Shippo's buy-label screen. Optional auto-import runs after a paid Stripe webhook. Neither workflow buys a label.
+- **Mark as shipped** records a new or scheduled order as shipped after a confirmation popup. It creates no Shippo order. Optional auto-import still creates a Shippo order after a paid Stripe webhook and links to Shippo's buy-label screen. Neither workflow buys a label.
 - A unique local claim suppresses duplicate Shippo imports. Ambiguous Shippo failures remain in `processing`; this plugin intentionally provides no reconciliation workflow for them.
 - Admin email is best-effort deduplicated per Checkout Session. Failed sends can retry immediately, and abandoned claims become retryable after ten minutes. With auto-import enabled, an import exception is logged and stops that webhook invocation before email is attempted.
 - `ship_after` dates are informational. They label an order Scheduled but never prevent or delay manual import, auto-import, or label purchase.
@@ -155,7 +155,7 @@ Notification claims suppress ordinary duplicate/retried webhook messages. Exact-
 5. Complete a test payment-mode Checkout that collects a shipping or billing address.
 6. Deliver its Stripe webhook, then open **Fulfillment** as a Craft administrator.
 7. Confirm all lines, the total/currency, address summary, refund warning, and informational schedule are correct.
-8. With auto-import off, click **Import to Shippo** and confirm one Shippo test order is created.
+8. With auto-import off, click **Mark as shipped**, accept the confirmation, and confirm the order shows **Shipped**.
 
 ## Import behavior
 
@@ -178,7 +178,7 @@ Known Shippo client errors mark the claim failed so a later import can retry. Am
 | **New** | No completed local Shippo import exists. |
 | **Scheduled** | Not imported, and the latest valid `ship_after` date is in the future. This is informational. |
 | **Label pending** | A Shippo order exists, but no successful label transaction has been observed. |
-| **Shipped** | Shippo reports a successful label transaction. No carrier/tracking state is checked. |
+| **Shipped** | Shippo reports a successful label transaction, or an administrator marked the order shipped. No carrier/tracking state is checked. |
 | **Refunded** | Stripe reports the latest charge as fully refunded. Import is blocked. |
 
 A partial refund appears as a secondary warning and remains importable. A full refund takes precedence over Shipped, Label pending, and Scheduled in the status column, although any stored shipment timestamps remain intact. Imported status takes precedence over Scheduled; the date can still be displayed.
