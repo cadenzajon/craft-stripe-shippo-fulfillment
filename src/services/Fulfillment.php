@@ -130,9 +130,13 @@ class Fulfillment extends Component
         if ($existing !== null && $existing->status === Shipment::STATUS_SHIPPED) {
             return $existing;
         }
-        if ($existing !== null && $existing->status !== Shipment::STATUS_FAILED) {
-            // Imported or mid-import: shipping is tracked through the Shippo label.
+        if ($existing !== null && $existing->status === Shipment::STATUS_IMPORTED) {
+            // Shipping is tracked through the Shippo label.
             throw new UnfulfillableOrderException('This order is already in Shippo. Ship it from there.');
+        }
+        if ($existing !== null && $existing->status === Shipment::STATUS_PROCESSING) {
+            // In flight, or an ambiguous Shippo failure that may have created an order.
+            throw new UnfulfillableOrderException('A Shippo import for this order has not finished. Check Shippo before you ship it.');
         }
 
         $orders = Plugin::getInstance()->stripeOrders;
@@ -172,7 +176,12 @@ class Fulfillment extends Component
                 );
             }
         } catch (IntegrityException) {
-            // A concurrent import or mark inserted the row first.
+            // A concurrent import or mark inserted the row first. A duplicate
+            // mark (e.g. a double submit) already did the job.
+            $winner = Shipment::findBySession($session->id);
+            if ($winner !== null && $winner->status === Shipment::STATUS_SHIPPED) {
+                return $winner;
+            }
             throw new UnfulfillableOrderException('This order changed while you were working. Refresh and try again.');
         }
 

@@ -45,7 +45,7 @@
             <div class="readable" style="margin-bottom:16px">
                 <blockquote class="note warning">Add a Shippo API token in
                     <a href="{{ url('settings/plugins/stripe-shippo-fulfillment') }}">the plugin settings</a>
-                    before importing orders.</blockquote>
+                    to auto-import orders and to see Shippo label status.</blockquote>
             </div>
         {% endif %}
 
@@ -106,7 +106,12 @@
                             </td>
                             <td>
                                 {% if order.status == 'refunded' %}
-                                    <span style="color:#8b909a">No shipment</span>
+                                    {% if order.shippedAt %}
+                                        <span style="color:#8b909a">Refunded after shipping</span>
+                                        <span class="ss-when">shipped {{ order.shippedAt|date('M j') }}</span>
+                                    {% else %}
+                                        <span style="color:#8b909a">No shipment</span>
+                                    {% endif %}
                                 {% elseif order.shippoOrderId %}
                                     <a class="btn small" href="{{ shippoBase }}/{{ order.shippoOrderId }}" target="_blank" rel="noopener">
                                         {{ order.shippedAt ? 'View in Shippo ↗' : 'Buy label ↗' }}
@@ -146,7 +151,9 @@
             form.addEventListener('submit', function (e) {
                 if (!window.confirm(form.dataset.ssConfirm)) {
                     e.preventDefault();
+                    return;
                 }
+                form.querySelector('button[type=submit]').disabled = true;
             });
         });
     {% endjs %}
